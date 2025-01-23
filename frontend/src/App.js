@@ -1,17 +1,17 @@
 import React, { useState } from "react"
 import axios from "axios"
-import "./App.css" // Import the CSS file for styles
-import { ingredients } from "./data/ingredients" // Import the ingredients array
+import "./App.css"
+import { ingredients } from "./data/ingredients"
 
 function App() {
-  const [selectedIngredients, setSelectedIngredients] = useState([]) // Track selected ingredients
-  const [selectedDays, setSelectedDays] = useState([]) // Track selected days
-  const [expandedCategories, setExpandedCategories] = useState([]) // Track expanded categories
-  const [expandedRecipes, setExpandedRecipes] = useState([]) // Track expanded recipes
-  const [results, setResults] = useState([]) // Store query results
-  const [mealPlan, setMealPlan] = useState("") // Store the generated meal plan
-  const [error, setError] = useState(null) // Handle errors
-  const [isLoading, setIsLoading] = useState(false) // Track loading state
+  const [selectedIngredients, setSelectedIngredients] = useState([])
+  const [selectedDays, setSelectedDays] = useState([])
+  const [expandedCategories, setExpandedCategories] = useState([])
+  const [expandedRecipes, setExpandedRecipes] = useState([])
+  const [results, setResults] = useState([])
+  const [mealPlan, setMealPlan] = useState("")
+  const [error, setError] = useState(null)
+  const [isLoading, setIsLoading] = useState(false)
 
   const toggleIngredient = (ingredientName) => {
     setSelectedIngredients((prev) =>
@@ -53,7 +53,6 @@ function App() {
     setError(null)
 
     try {
-      // Fetch recipes
       const queryString = selectedIngredients.join(",")
       const recipeResponse = await axios.post(
         "http://127.0.0.1:8000/query/",
@@ -66,7 +65,6 @@ function App() {
       const recipes = recipeResponse.data.results
       setResults(recipes)
 
-      // Generate meal plan
       const mealPlanResponse = await axios.post(
         "http://127.0.0.1:8000/generate_meal_plan/",
         {
@@ -119,7 +117,6 @@ function App() {
           </div>
         ) : (
           <>
-            {/* Days of the Week and Categories Section */}
             <div className="categories-container">
               <button className="clear-button" onClick={handleClearAll}>
                 Clear All
@@ -174,7 +171,6 @@ function App() {
               ))}
             </div>
 
-            {/* Meal Plan and Results Section */}
             <div className="search-results-container">
               <button
                 className="generate-button"

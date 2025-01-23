@@ -36,7 +36,7 @@ app.add_middleware(
 def read_root():
     return {"message": "Welcome to the RAG backend!"}
 
-# File path for RAW_recipes.csv
+# File path for Recipes data set
 DATA_PATH = os.path.join("app", "data", "RecipeNLG_dataset.csv")
 
 # Load and prepare data
@@ -105,18 +105,15 @@ def upsert_embeddings():
 # Endpoint to query Pinecone for similar recipes
 @app.post("/query/")
 def query_recipes(request: QueryRequest):
-    print(f"Received query_text: {request.query_text}")  # Debug log
+    print(f"Received query_text: {request.query_text}") 
     """
     Query the Pinecone index for similar recipes.
     """
     try:
-        # Generate an embedding for the query text
         query_embedding = get_embedding(request.query_text)
 
-        # Query the Pinecone index
         results = query_index(vector=query_embedding, top_k=20)
 
-        # Format the results
         formatted_results = [
             {
                 "id": match["id"],

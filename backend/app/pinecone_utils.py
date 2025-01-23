@@ -3,16 +3,13 @@ import pandas as pd
 import openai
 import os
 
-# Initialize Pinecone
 API_KEY = "pcsk_45rHwF_9JVoNvHY1LVKxrFNmzeVrJKwQ4Mcj4WKoNx5YdeNHRTtA3AXSW8PwzdgTKBHDeu"  # Replace with your Pinecone API key
-ENVIRONMENT = "us-east1-gcp"  # Replace with your Pinecone environment
+ENVIRONMENT = "us-east1-gcp"  
 INDEX_NAME = "recipe-data"
-DIMENSION = 1536  # Embedding dimension from OpenAI's text-embedding-ada-002 model
+DIMENSION = 1536  
 
-# Create an instance of Pinecone
 pc = Pinecone(api_key=API_KEY)
 
-# Check if the index exists, otherwise create it
 if INDEX_NAME not in pc.list_indexes().names():
     pc.create_index(
         name=INDEX_NAME,
@@ -24,39 +21,33 @@ if INDEX_NAME not in pc.list_indexes().names():
         )
     )
 
-# Access the index
 index = pc.Index(INDEX_NAME)
 
 def load_and_prepare_data(filepath: str):
     """
     Load and preprocess the RecipeNLG dataset for embedding and upserting.
     """
-    # Load the dataset
     df = pd.read_csv(filepath)
 
-    # Fill missing values with placeholders to avoid errors during processing
     df["title"] = df["title"].fillna("Unknown Recipe")
-    df["ingredients"] = df["ingredients"].fillna("[]")  # Placeholder for empty ingredients
-    df["directions"] = df["directions"].fillna("[]")  # Placeholder for empty directions
+    df["ingredients"] = df["ingredients"].fillna("[]") 
+    df["directions"] = df["directions"].fillna("[]")  
 
-    # Preprocess the fields to ensure consistency
     def preprocess_row(row):
-        # Convert ingredients and directions from strings to lists
-        ingredients = ", ".join(eval(row["ingredients"]))  # Join the list into a single string
-        directions = ". ".join(eval(row["directions"]))  # Join the list into a single string
+        
+        ingredients = ", ".join(eval(row["ingredients"]))  
+        directions = ". ".join(eval(row["directions"]))  
         return f"{row['title']}. Ingredients: {ingredients}. Directions: {directions}"
 
-    # Combine fields into a single text for embedding
     df["text"] = df.apply(preprocess_row, axis=1)
 
-    # Create metadata for upserting
     df["metadata"] = df.apply(
         lambda row: {
             "title": row["title"],
-            "ingredients": eval(row["ingredients"]),  # Store as a list
-            "directions": eval(row["directions"]),  # Store as a list
-            "link": row.get("link", ""),  # Handle missing links gracefully
-            "source": row.get("source", ""),  # Handle missing sources gracefully
+            "ingredients": eval(row["ingredients"]),  
+            "directions": eval(row["directions"]),  
+            "link": row.get("link", ""),  
+            "source": row.get("source", ""),  
         },
         axis=1,
     )
@@ -75,27 +66,24 @@ def generate_and_upsert_embeddings(df, index, batch_size=100, limit=None):
             break
 
         try:
-            # Generate embeddings
             response = openai.Embedding.create(
                 model="text-embedding-ada-002",
                 input=row["text"]
             )
             embedding = response["data"][0]["embedding"]
 
-            # Prepare vector for Pinecone
             vectors.append({
                 "id": str(idx),
                 "values": embedding,
                 "metadata": {
                     "title": row["title"],
                     "ingredients": eval(row["ingredients"]),
-                    "directions": eval(row["directions"]),  # Include directions/instructions here
+                    "directions": eval(row["directions"]),
                     "link": row["link"],
                     "source": row["source"]
                 },
             })
 
-            # Upsert in batches
             if len(vectors) >= batch_size:
                 index.upsert(vectors)
                 total_upserted += len(vectors)
@@ -105,7 +93,6 @@ def generate_and_upsert_embeddings(df, index, batch_size=100, limit=None):
         except Exception as e:
             print(f"Error processing row {idx}: {e}")
 
-    # Final upsert for remaining vectors
     if vectors:
         index.upsert(vectors)
         total_upserted += len(vectors)
@@ -137,19 +124,16 @@ def query_index(vector, top_k=20, filter=None):
     )
     return response["matches"]
 
-# Query for similar recipes
 def query_recipes(query_text: str, index, top_k=20):
     """
     Query Pinecone index for recipes similar to the query text.
     """
     try:
-        # Generate query embedding
         query_embedding = openai.Embedding.create(
             model="text-embedding-ada-002",
             input=query_text
         )["data"][0]["embedding"]
 
-        # Query Pinecone index
         results = index.query(
             vector=query_embedding,
             top_k=top_k,
